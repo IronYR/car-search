@@ -52,9 +52,9 @@ export default function CarList() {
   useEffect(() => {
     setPage(1);
     loadCars(1, true);
-  }, [query]); // Remove loadCars from dependencies
+  }, [query]); 
 
-  // Handle infinite scroll
+  // infinite scroll
   useEffect(() => {
     if (inView && hasMore && !isLoading && page > 1) {
       loadCars(page, false);

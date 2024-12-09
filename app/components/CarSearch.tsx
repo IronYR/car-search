@@ -8,7 +8,7 @@ export default function CarSearch() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('query') || '');
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
     if (query) {

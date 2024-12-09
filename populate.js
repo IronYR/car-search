@@ -1,7 +1,6 @@
 const mysql = require('mysql2/promise');
 const { faker } = require('@faker-js/faker');
 
-// Create a pool for this script
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -41,13 +40,8 @@ const makesAndModels = {
     `;
 
     await pool.execute(createTableQuery);
-    console.log("Table created or already exists!");
 
-    // // Clear existing data
-    // await pool.execute('TRUNCATE TABLE cars');
-    // console.log("Cleared existing data!");
-
-    // Generate and insert 1000 dummy entries
+    // Generate and insert dummy entries
     for (let i = 0; i < 1000; i++) {
         const make = faker.helpers.arrayElement(Object.keys(makesAndModels));
         const model = faker.helpers.arrayElement(makesAndModels[make]);

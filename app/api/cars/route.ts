@@ -14,17 +14,16 @@ export async function GET(request: Request) {
     let params: any[] = [];
 
     if (query) {
-      sql += ' WHERE make LIKE ? OR model LIKE ?';
-      countSql += ' WHERE make LIKE ? OR model LIKE ?';
-      params.push(`%${query}%`, `%${query}%`);
+      sql += ' WHERE MATCH(make, model, description) AGAINST(? IN BOOLEAN MODE)';
+      countSql += ' WHERE MATCH(make, model, description) AGAINST(? IN BOOLEAN MODE)';
+      params.push(query);
     }
-
-    // Convert LIMIT and OFFSET to numbers explicitly
-    sql += ' LIMIT ' + limit + ' OFFSET ' + offset;
+    sql += ' LIMIT ? OFFSET ?';
+    params.push(limit.toString(), offset.toString());
 
     const [rows] = await pool.execute(sql, params);
     const [totalRows] = await pool.execute(countSql, query ? params : []);
-
+    // console.log(totalRows)
     const total = (totalRows as any)[0].total;
     const hasMore = offset + limit < total;
 
