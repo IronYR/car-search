@@ -1,48 +1,36 @@
 import { NextResponse } from 'next/server';
-import { createPool } from 'mysql2/promise';
-
-const pool = createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  connectionLimit: 10,
-});
+import pool from '@/app/lib/db';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
   const page = parseInt(searchParams.get('page') || '1');
-  const limit = 25;
+  const limit = 25; // Items per page
   const offset = (page - 1) * limit;
 
   try {
-    const connection = await pool.getConnection();
-    
     let sql = 'SELECT * FROM cars';
     let countSql = 'SELECT COUNT(*) as total FROM cars';
-    let params: string[] = [];
-    let countParams: string[] = [];
+    let params: any[] = [];
 
     if (query) {
-      sql += ' WHERE MATCH(make, model, description) AGAINST(? IN BOOLEAN MODE)';
-      countSql += ' WHERE MATCH(make, model, description) AGAINST(? IN BOOLEAN MODE)';
-      params.push(query);
-      countParams.push(query);
+      sql += ' WHERE make LIKE ? OR model LIKE ?';
+      countSql += ' WHERE make LIKE ? OR model LIKE ?';
+      params.push(`%${query}%`, `%${query}%`);
     }
 
-    sql += ' LIMIT ? OFFSET ?';
-    params.push(limit.toString(), offset.toString());
+    // Convert LIMIT and OFFSET to numbers explicitly
+    sql += ' LIMIT ' + limit + ' OFFSET ' + offset;
 
-    const [rows] = await connection.execute(sql, params);
-    const [countResult] = await connection.execute(countSql, countParams);
-    connection.release();
+    const [rows] = await pool.execute(sql, params);
+    const [totalRows] = await pool.execute(countSql, query ? params : []);
 
-    const total = (countResult as any)[0].total;
+    const total = (totalRows as any)[0].total;
+    const hasMore = offset + limit < total;
 
     return NextResponse.json({
       cars: rows,
-      hasMore: offset + limit < total,
+      hasMore,
       total
     });
   } catch (error) {

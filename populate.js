@@ -1,7 +1,18 @@
 const mysql = require('mysql2/promise');
 const { faker } = require('@faker-js/faker');
 
-// Sample data for makes and models
+// Create a pool for this script
+const pool = mysql.createPool({
+  host: 'mysql-1881681a-yrehan67-ca74.g.aivencloud.com',
+  port: 26052,
+  user: 'avnadmin',
+  password: 'AVNS_kkrd3HSOmhze5GKhMDA',
+  database: 'defaultdb',
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
 const makesAndModels = {
   Toyota: ["Corolla", "Camry", "RAV4", "Prius"],
   Honda: ["Civic", "Accord", "CR-V", "Fit"],
@@ -12,20 +23,31 @@ const makesAndModels = {
 };
 
 (async function populateDatabase() {
-  // Database connection
-  const connection = await mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'yousufrehan',
-    database: 'car_database'
-  });
-
   try {
     console.log("Connected to the database!");
 
+    // Create table if it doesn't exist
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS cars (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        make VARCHAR(50) NOT NULL,
+        model VARCHAR(50) NOT NULL,
+        year INT NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        description TEXT,
+        FULLTEXT KEY car_search (make, model, description)
+      ) ENGINE=InnoDB;
+    `;
+
+    await pool.execute(createTableQuery);
+    console.log("Table created or already exists!");
+
+    // // Clear existing data
+    // await pool.execute('TRUNCATE TABLE cars');
+    // console.log("Cleared existing data!");
+
     // Generate and insert 1000 dummy entries
     for (let i = 0; i < 1000; i++) {
-        // Correctly select random elements
         const make = faker.helpers.arrayElement(Object.keys(makesAndModels));
         const model = faker.helpers.arrayElement(makesAndModels[make]);
         const year = faker.number.int({ min: 2000, max: 2023 });
@@ -36,7 +58,7 @@ const makesAndModels = {
           INSERT INTO cars (make, model, year, price, description)
           VALUES (?, ?, ?, ?, ?)
         `;
-        await connection.execute(query, [make, model, year, price, description]);
+        await pool.execute(query, [make, model, year, price, description]);
   
         if ((i + 1) % 100 === 0) {
           console.log(`${i + 1} records inserted...`);
@@ -46,7 +68,7 @@ const makesAndModels = {
   } catch (err) {
     console.error("Error populating data:", err);
   } finally {
-    await connection.end();
+    await pool.end();
     console.log("Database connection closed.");
   }
 })();
